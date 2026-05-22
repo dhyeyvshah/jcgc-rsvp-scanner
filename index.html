@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Temple RSVP Scanner</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f0e8; min-height: 100vh; color: #2c2c2a; }
+
+  header { background: #085041; color: #fff; padding: 1rem 1.25rem; display: flex; align-items: center; gap: 12px; }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header p  { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+  .container { padding: 1.25rem; max-width: 480px; margin: 0 auto; }
+
+  #idle-state { text-align: center; padding: 2rem 0 1.5rem; }
+  #idle-state p { font-size: 14px; color: #888780; margin-bottom: 1.5rem; }
+
+  #btn-scan {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 16px 32px; background: #085041; color: #fff;
+    border: none; border-radius: 14px; font-size: 17px; font-weight: 600;
+    cursor: pointer; width: 100%; justify-content: center;
+  }
+  #btn-scan:active { background: #04342C; }
+
+  #reader-wrap { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #d3d1c7; margin-bottom: 1rem; display: none; }
+  #reader { width: 100% !important; }
+
+  #btn-cancel { width: 100%; padding: 12px; background: transparent; border: 1px solid #d3d1c7; border-radius: 12px; font-size: 15px; color: #5f5e5a; cursor: pointer; margin-bottom: 1.25rem; display: none; }
+  #btn-cancel:active { background: #f1efe8; }
+
+  #result-card { display: none; background: #fff; border-radius: 16px; border: 1px solid #d3d1c7; overflow: hidden; margin-bottom: 1.25rem; }
+
+  .result-header { padding: 18px 20px; border-bottom: 0.5px solid #f1efe8; }
+  .result-header h2 { font-size: 18px; font-weight: 600; color: #2c2c2a; }
+  .result-header p  { font-size: 13px; color: #888780; margin-top: 3px; }
+
+  .result-body { padding: 4px 0; }
+  .field { display: flex; justify-content: space-between; align-items: center; padding: 11px 20px; border-bottom: 0.5px solid #f1efe8; }
+  .field:last-child { border-bottom: none; }
+  .field-label { font-size: 13px; color: #888780; }
+  .field-value { font-size: 14px; font-weight: 500; }
+
+  .pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+  .pill-a { background: #EEEDFE; color: #3C3489; }
+  .pill-k { background: #FAEEDA; color: #633806; }
+
+  #btn-again { width: 100%; padding: 13px; background: #085041; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 1.25rem; display: none; }
+  #btn-again:active { background: #04342C; }
+
+  #log-wrap { background: #fff; border-radius: 16px; border: 1px solid #d3d1c7; overflow: hidden; }
+  .log-header { font-size: 11px; color: #888780; padding: 10px 16px; border-bottom: 0.5px solid #f1efe8; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; }
+  #log-list { list-style: none; max-height: 220px; overflow-y: auto; }
+  #log-list li { padding: 9px 16px; font-size: 13px; border-bottom: 0.5px solid #f1efe8; display: flex; justify-content: space-between; align-items: center; }
+  #log-list li:last-child { border-bottom: none; }
+  .log-name { font-weight: 500; }
+  .log-time { color: #888780; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<header>
+  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+    <polyline points="9 22 9 12 15 12 15 22"/>
+  </svg>
+  <div>
+    <h1>Temple RSVP</h1>
+    <p>Door scanner</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div id="idle-state">
+    <p>Point the camera at a guest's QR code</p>
+    <button id="btn-scan" onclick="startScan()">📷 &nbsp; Scan QR Code</button>
+  </div>
+
+  <div id="reader-wrap"><div id="reader"></div></div>
+  <button id="btn-cancel" onclick="cancelScan()">Cancel</button>
+
+  <div id="result-card">
+    <div class="result-header">
+      <h2 id="res-name"></h2>
+      <p id="res-id" style="font-family:monospace;font-size:12px;color:#888780;margin-top:4px"></p>
+    </div>
+    <div class="result-body">
+      <div class="field"><span class="field-label">Event</span><span class="field-value" id="res-event"></span></div>
+      <div class="field"><span class="field-label">Date</span><span class="field-value" id="res-date"></span></div>
+      <div class="field"><span class="field-label">Category</span><span class="field-value" id="res-cat"></span></div>
+      <div class="field"><span class="field-label">Total</span><span class="field-value" id="res-total"></span></div>
+    </div>
+  </div>
+
+  <button id="btn-again" onclick="reset()">📷 &nbsp; Scan next guest</button>
+
+  <div id="log-wrap">
+    <div class="log-header">Today's scans</div>
+    <ul id="log-list"><li style="color:#888780;padding:1rem 16px">No scans yet</li></ul>
+  </div>
+
+</div>
+
+<script>
+let scanner = null;
+let log     = [];
+
+function startScan() {
+  document.getElementById("idle-state").style.display  = "none";
+  document.getElementById("reader-wrap").style.display = "block";
+  document.getElementById("btn-cancel").style.display  = "block";
+  document.getElementById("result-card").style.display = "none";
+  document.getElementById("btn-again").style.display   = "none";
+
+  scanner = new Html5Qrcode("reader");
+  scanner.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 260, height: 260 } },
+    onScanSuccess,
+    () => {}
+  ).catch(err => { alert("Camera error: " + err); reset(); });
+}
+
+function onScanSuccess(raw) {
+  scanner.stop().then(() => {
+    scanner = null;
+    document.getElementById("reader-wrap").style.display = "none";
+    document.getElementById("btn-cancel").style.display  = "none";
+    showResult(raw);
+  });
+}
+
+function cancelScan() {
+  if (scanner) { scanner.stop().catch(()=>{}); scanner = null; }
+  reset();
+}
+
+function parseQR(raw) {
+  const obj = {};
+  raw.split("|").forEach(part => {
+    const i = part.indexOf(":");
+    if (i > -1) obj[part.substring(0, i)] = part.substring(i + 1);
+  });
+  return obj;
+}
+
+function showResult(raw) {
+  const d = parseQR(raw);
+
+  document.getElementById("result-card").style.display = "block";
+  document.getElementById("btn-again").style.display   = "block";
+
+  document.getElementById("res-name").textContent  = d.NAME  || "Unknown";
+  document.getElementById("res-id").textContent    = d.ID    || "";
+  document.getElementById("res-event").textContent = d.EVENT || "—";
+  document.getElementById("res-date").textContent  = d.DATE  || "—";
+  document.getElementById("res-total").textContent = d.TOTAL ? d.TOTAL + " people" : "—";
+  document.getElementById("res-cat").textContent   = d.CAT   || "—";
+
+  addLog(d.NAME || "Unknown", d.ID || null);
+}
+
+function addLog(name, id) {
+  const list = document.getElementById("log-list");
+  if (log.length === 0) list.innerHTML = "";
+  const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  log.unshift({ name, id, time });
+  list.innerHTML = log.map(e => `
+    <li>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="log-name">${e.name}</span>
+        ${e.id ? `<span style="color:#888780;font-size:11px;font-family:monospace">${e.id}</span>` : ""}
+      </div>
+      <span class="log-time">${e.time}</span>
+    </li>`).join("");
+}
+
+function reset() {
+  document.getElementById("idle-state").style.display  = "block";
+  document.getElementById("reader-wrap").style.display = "none";
+  document.getElementById("btn-cancel").style.display  = "none";
+  document.getElementById("result-card").style.display = "none";
+  document.getElementById("btn-again").style.display   = "none";
+}
+</script>
+</body>
+</html>
