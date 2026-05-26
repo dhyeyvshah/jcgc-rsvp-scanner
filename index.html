@@ -249,7 +249,7 @@ async function processQR(raw) {
   }
 
   try {
-    const res    = await fetch(WEB_APP_URL + "?action=scan&id=" + encodeURIComponent(d.ID) + "&name=" + encodeURIComponent(d.NAME || "") + "&cat=" + encodeURIComponent(d.CAT || ""));
+    const res = await fetch(WEB_APP_URL + "?action=scan&id=" + encodeURIComponent(d.ID));
     const result = await res.json();
 
     if (result.status === "valid") {
