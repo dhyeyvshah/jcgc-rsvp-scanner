@@ -216,7 +216,7 @@ async function processQR(raw) {
     const result = await res.json();
 
     if (result.status === "valid") {
-      showResult("valid", "✓ Valid — let them in", result.name || d.NAME);
+      showResult("valid", "✓ Valid", result.name || d.NAME);
       addLog(result.name || d.NAME, d.ID, "ok");
       loadStats();
     } else if (result.status === "duplicate") {
