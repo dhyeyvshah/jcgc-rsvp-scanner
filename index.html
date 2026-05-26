@@ -3,185 +3,162 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>JCGC Picnic Scanner</title>
+<title>Event Scanner</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f0e8; min-height: 100vh; color: #2c2c2a; }
 
-  header { background: #085041; color: #fff; padding: 1rem 1.25rem; display: flex; align-items: center; gap: 12px; }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header p  { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+  .wrap { max-width: 420px; margin: 0 auto; padding: 1rem; }
 
-  .container { padding: 1.25rem; max-width: 480px; margin: 0 auto; }
+  .card { background: #fff; border: 1px solid #e0ddd5; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; }
 
-  /* ── stats bar ── */
-  #stats-bar { background: #fff; border-radius: 14px; border: 1px solid #d3d1c7; padding: 14px 16px; margin-bottom: 1.25rem; }
-  .stats-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-  .stats-row:last-child { margin-bottom: 0; }
-  .stats-label { font-size: 12px; color: #888780; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 500; }
-  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .stat-box { background: #f5f0e8; border-radius: 10px; padding: 10px 6px; text-align: center; }
-  .stat-num  { font-size: 22px; font-weight: 700; color: #085041; line-height: 1; }
-  .stat-lbl  { font-size: 10px; color: #888780; margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
-  #stats-error { font-size: 12px; color: #E24B4A; text-align: center; display: none; padding: 4px 0; }
+  /* stats */
+  .section-label { font-size: 11px; color: #888780; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; font-weight: 500; }
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .stat-box { background: #f5f0e8; border-radius: 10px; padding: 12px 8px; text-align: center; }
+  .stat-label { font-size: 12px; color: #888780; margin-bottom: 8px; }
+  .stat-row { display: flex; justify-content: center; align-items: baseline; gap: 5px; }
+  .stat-scanned { font-size: 22px; font-weight: 600; color: #1D9E75; line-height: 1; }
+  .stat-remaining { font-size: 14px; font-weight: 500; color: #888780; }
+  .stat-divider { font-size: 13px; color: #bbb; }
+  .stat-legend { display: flex; justify-content: center; gap: 14px; margin-top: 10px; font-size: 11px; color: #888780; }
+  .stat-legend span { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot-in  { background: #1D9E75; }
+  .dot-out { background: #d3d1c7; }
+  #stats-error { font-size: 12px; color: #E24B4A; text-align: center; margin-top: 10px; display: none; }
 
-  /* ── not configured warning ── */
-  #config-warning { background: #FFF8E1; border: 1px solid #FFE082; border-radius: 12px; padding: 14px 16px; margin-bottom: 1.25rem; font-size: 13px; color: #5D4037; display: none; }
-  #config-warning code { background: #FFE082; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-
-  /* ── idle ── */
-  #idle-state { text-align: center; padding: 1.5rem 0 1.25rem; }
-  #idle-state p { font-size: 14px; color: #888780; margin-bottom: 1.25rem; }
-  #btn-scan { display: inline-flex; align-items: center; gap: 10px; padding: 16px 32px; background: #085041; color: #fff; border: none; border-radius: 14px; font-size: 17px; font-weight: 600; cursor: pointer; width: 100%; justify-content: center; }
+  /* scan button */
+  #btn-scan { width: 100%; padding: 18px; background: #085041; color: #fff; border: none; border-radius: 16px; font-size: 18px; font-weight: 600; cursor: pointer; margin-bottom: 1rem; }
   #btn-scan:active { background: #04342C; }
 
-  /* ── camera ── */
-  #reader-wrap { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #d3d1c7; margin-bottom: 1rem; display: none; }
+  /* camera */
+  #reader-wrap { background: #fff; border-radius: 16px; overflow: hidden; border: 1px solid #e0ddd5; margin-bottom: 1rem; display: none; }
   #reader { width: 100% !important; }
-  #btn-cancel { width: 100%; padding: 12px; background: transparent; border: 1px solid #d3d1c7; border-radius: 12px; font-size: 15px; color: #5f5e5a; cursor: pointer; margin-bottom: 1.25rem; display: none; }
+  #btn-cancel { width: 100%; padding: 13px; background: transparent; border: 1px solid #d3d1c7; border-radius: 12px; font-size: 15px; color: #5f5e5a; cursor: pointer; margin-bottom: 1rem; display: none; }
 
-  /* ── result ── */
-  #result-card { display: none; background: #fff; border-radius: 16px; border: 1px solid #d3d1c7; overflow: hidden; margin-bottom: 1.25rem; }
-  .result-banner { padding: 18px 20px; display: flex; align-items: center; gap: 14px; border-bottom: 0.5px solid #f1efe8; }
-  .result-banner.valid     { background: #E1F5EE; border-bottom: 1px solid #9FE1CB; }
-  .result-banner.duplicate { background: #FFF8E1; border-bottom: 1px solid #FFE082; }
-  .result-banner.invalid   { background: #FCEBEB; border-bottom: 1px solid #F7C1C1; }
-  .badge { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; flex-shrink: 0; color: #fff; }
-  .valid     .badge { background: #1D9E75; }
-  .duplicate .badge { background: #F59E0B; }
-  .invalid   .badge { background: #E24B4A; }
-  .result-banner h2 { font-size: 17px; font-weight: 600; }
-  .valid     h2 { color: #04342C; }
-  .duplicate h2 { color: #78350F; }
-  .invalid   h2 { color: #501313; }
-  .result-banner p { font-size: 13px; margin-top: 2px; }
-  .valid     .result-banner p { color: #0F6E56; }
-  .duplicate .result-banner p { color: #92400E; }
-  .invalid   .result-banner p { color: #A32D2D; }
-  .result-body { padding: 4px 0; }
-  .field { display: flex; justify-content: space-between; align-items: center; padding: 11px 20px; border-bottom: 0.5px solid #f1efe8; }
-  .field:last-child { border-bottom: none; }
-  .field-label { font-size: 13px; color: #888780; }
-  .field-value { font-size: 14px; font-weight: 500; }
+  /* result */
+  #result-card { display: none; border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; border: 1px solid transparent; }
+  #result-card.valid     { background: #E1F5EE; border-color: #9FE1CB; }
+  #result-card.duplicate { background: #FFF8E1; border-color: #FFE082; }
+  #result-card.invalid   { background: #FCEBEB; border-color: #F7C1C1; }
+  #res-status { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+  .valid   #res-status { color: #0F6E56; }
+  .duplicate #res-status { color: #92400E; }
+  .invalid   #res-status { color: #A32D2D; }
+  #res-name { font-size: 22px; font-weight: 600; color: #2c2c2a; margin-bottom: 14px; }
+  .field-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid rgba(0,0,0,0.06); font-size: 14px; }
+  .field-key { color: #888780; }
+  .field-val { font-weight: 500; color: #2c2c2a; }
+  #scanned-at-row { display: none; }
 
-  #btn-again { width: 100%; padding: 13px; background: #085041; color: #fff; border: none; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; margin-bottom: 1.25rem; display: none; }
-  #btn-again:active { background: #04342C; }
+  /* again */
+  #btn-again { width: 100%; padding: 13px; background: transparent; border: 1px solid #d3d1c7; border-radius: 12px; font-size: 15px; color: #2c2c2a; cursor: pointer; margin-bottom: 1rem; display: none; }
 
-  /* ── log ── */
-  #log-wrap { background: #fff; border-radius: 16px; border: 1px solid #d3d1c7; overflow: hidden; }
-  .log-header { font-size: 11px; color: #888780; padding: 10px 16px; border-bottom: 0.5px solid #f1efe8; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 500; }
-  #log-list { list-style: none; max-height: 220px; overflow-y: auto; }
-  #log-list li { padding: 9px 16px; font-size: 13px; border-bottom: 0.5px solid #f1efe8; display: flex; justify-content: space-between; align-items: center; }
-  #log-list li:last-child { border-bottom: none; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; }
-  .dot.ok  { background: #1D9E75; }
-  .dot.dup { background: #F59E0B; }
-  .dot.err { background: #E24B4A; }
+  /* log */
+  .log-item { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f1efe8; font-size: 13px; }
+  .log-item:last-child { border-bottom: none; }
+  .log-dot { width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; flex-shrink: 0; display: inline-block; }
+  .log-dot.ok  { background: #1D9E75; }
+  .log-dot.dup { background: #F59E0B; }
+  .log-dot.err { background: #E24B4A; }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<header>
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-    <polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>
-  <div>
-    <h1>JCGC Picnic 2026</h1>
-    <p>Door scanner</p>
-  </div>
-</header>
-
-<div class="container">
-
-  <div id="config-warning">
-    ⚠️ Web app URL not set. Open this file and set <code>WEB_APP_URL</code> at the top of the script.
-  </div>
-
-  <!-- Live stats -->
-  <div id="stats-bar">
-    <div class="stats-row">
-      <span class="stats-label">Scanned so far</span>
-      <span style="font-size:12px;color:#888780;cursor:pointer" onclick="loadStats()">↻ Refresh</span>
+  <!-- Stats -->
+  <div class="card">
+    <div class="section-label">Check-in progress <span style="float:right;cursor:pointer;font-size:13px" onclick="loadStats()">↻ Refresh</span></div>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-label">Adults (12+)</div>
+        <div class="stat-row">
+          <span class="stat-scanned" id="stat-adults-scanned">—</span>
+          <span class="stat-divider">/</span>
+          <span class="stat-remaining" id="stat-adults-remaining">—</span>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Kids (5–12)</div>
+        <div class="stat-row">
+          <span class="stat-scanned" id="stat-kids-scanned">—</span>
+          <span class="stat-divider">/</span>
+          <span class="stat-remaining" id="stat-kids-remaining">—</span>
+        </div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-label">Under 5</div>
+        <div class="stat-row">
+          <span class="stat-scanned" id="stat-children-scanned">—</span>
+          <span class="stat-divider">/</span>
+          <span class="stat-remaining" id="stat-children-remaining">—</span>
+        </div>
+      </div>
     </div>
-    <div class="stats-grid">
-      <div class="stat-box"><div class="stat-num" id="stat-adults">—</div><div class="stat-lbl">12+</div></div>
-      <div class="stat-box"><div class="stat-num" id="stat-kids">—</div><div class="stat-lbl">5–12</div></div>
-      <div class="stat-box"><div class="stat-num" id="stat-children">—</div><div class="stat-lbl">≤5</div></div>
-      <div class="stat-box" style="background:#085041"><div class="stat-num" style="color:#fff" id="stat-total">—</div><div class="stat-lbl" style="color:#9FE1CB">Total</div></div>
+    <div class="stat-legend">
+      <span><span class="dot dot-in"></span> Scanned</span>
+      <span><span class="dot dot-out"></span> Remaining</span>
     </div>
-    <div id="stats-error">Could not load stats — check web app URL</div>
+    <div id="stats-error">Could not load stats — check connection</div>
   </div>
 
-  <div id="idle-state">
-    <p>Point the camera at a guest's QR code</p>
-    <button id="btn-scan" onclick="startScan()">📷 &nbsp; Scan QR Code</button>
-  </div>
+  <!-- Scan button -->
+  <button id="btn-scan" onclick="startScan()">📷 &nbsp; Scan QR Code</button>
 
+  <!-- Camera -->
   <div id="reader-wrap"><div id="reader"></div></div>
   <button id="btn-cancel" onclick="cancelScan()">Cancel</button>
 
+  <!-- Result -->
   <div id="result-card">
-    <div class="result-banner" id="result-banner">
-      <div class="badge" id="badge"></div>
-      <div>
-        <h2 id="res-name"></h2>
-        <p  id="res-sub"></p>
-      </div>
-    </div>
-    <div class="result-body">
-      <div class="field"><span class="field-label">RSVP ID</span><span class="field-value" id="res-id" style="font-family:monospace;font-size:13px"></span></div>
-      <div class="field"><span class="field-label">Category</span><span class="field-value" id="res-cat"></span></div>
-      <div class="field"><span class="field-label">Event</span><span class="field-value" id="res-event"></span></div>
-      <div class="field"><span class="field-label">Date</span><span class="field-value" id="res-date"></span></div>
-      <div class="field" id="scanned-at-row" style="display:none"><span class="field-label">First scanned</span><span class="field-value" id="res-scanned-at" style="color:#F59E0B"></span></div>
-    </div>
+    <div id="res-status"></div>
+    <div id="res-name"></div>
+    <div class="field-row"><span class="field-key">Category</span><span class="field-val" id="res-cat"></span></div>
+    <div class="field-row"><span class="field-key">RSVP ID</span><span class="field-val" id="res-id" style="font-family:monospace;font-size:12px"></span></div>
+    <div class="field-row" id="scanned-at-row"><span class="field-key">First scanned</span><span class="field-val" id="res-scanned-at" style="color:#F59E0B"></span></div>
   </div>
 
-  <button id="btn-again" onclick="reset()">📷 &nbsp; Scan next guest</button>
+  <button id="btn-again" onclick="reset()">← Scan next guest</button>
 
-  <div id="log-wrap">
-    <div class="log-header">Today's scans</div>
-    <ul id="log-list"><li style="color:#888780;padding:1rem 16px">No scans yet</li></ul>
+  <!-- Log -->
+  <div class="section-label">Recent scans</div>
+  <div class="card" style="padding: 0 1.25rem;" id="log-card">
+    <div id="log-list"><div class="log-item" style="color:#888780">No scans yet</div></div>
   </div>
 
 </div>
-
 <script>
-// ─── SET YOUR WEB APP URL HERE ────────────────────────────────────────────────
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzNoxrbhCF2dfTpE5nfL1TXDM3c0RLcxvW3PvRUdtjlFQjEJtoFORxx-bQZZv8x2KSc/exec";  // paste your Apps Script web app URL
-// ─────────────────────────────────────────────────────────────────────────────
+const WEB_APP_URL = "YOUR_WEB_APP_URL";
 
 let scanner = null;
-let log     = [];
+let log = [];
 
-window.addEventListener("load", () => {
-  if (!WEB_APP_URL || WEB_APP_URL === "YOUR_WEB_APP_URL") {
-    document.getElementById("config-warning").style.display = "block";
-  } else {
-    loadStats();
-  }
-});
+window.addEventListener("load", loadStats);
 
-// ── Stats ──────────────────────────────────────────────────────────────────────
 async function loadStats() {
   try {
     const res  = await fetch(WEB_APP_URL + "?action=stats");
     const data = await res.json();
-    document.getElementById("stat-adults").textContent   = data.adults   ?? "—";
-    document.getElementById("stat-kids").textContent     = data.kids     ?? "—";
-    document.getElementById("stat-children").textContent = data.children ?? "—";
-    document.getElementById("stat-total").textContent    = data.total    ?? "—";
+
+    const set = (id, val) => { document.getElementById(id).textContent = val; };
+
+    set("stat-adults-scanned",    data.adults.scanned);
+    set("stat-adults-remaining",  data.adults.total - data.adults.scanned + " left");
+    set("stat-kids-scanned",      data.kids.scanned);
+    set("stat-kids-remaining",    data.kids.total - data.kids.scanned + " left");
+    set("stat-children-scanned",  data.children.scanned);
+    set("stat-children-remaining",data.children.total - data.children.scanned + " left");
+
     document.getElementById("stats-error").style.display = "none";
   } catch(e) {
     document.getElementById("stats-error").style.display = "block";
   }
 }
 
-// ── Scanner ────────────────────────────────────────────────────────────────────
 function startScan() {
-  document.getElementById("idle-state").style.display  = "none";
+  document.getElementById("btn-scan").style.display    = "none";
   document.getElementById("reader-wrap").style.display = "block";
   document.getElementById("btn-cancel").style.display  = "block";
   document.getElementById("result-card").style.display = "none";
@@ -206,7 +183,7 @@ function onScanSuccess(raw) {
 }
 
 function cancelScan() {
-  if (scanner) { scanner.stop().catch(()=>{}); scanner = null; }
+  if (scanner) { scanner.stop().catch(() => {}); scanner = null; }
   reset();
 }
 
@@ -224,81 +201,62 @@ async function processQR(raw) {
 
   document.getElementById("result-card").style.display = "block";
   document.getElementById("btn-again").style.display   = "block";
-
-  // Populate fields from QR data
-  document.getElementById("res-id").textContent    = d.ID    || "—";
-  document.getElementById("res-cat").textContent   = d.CAT   || "—";
-  document.getElementById("res-event").textContent = d.EVENT || "—";
-  document.getElementById("res-date").textContent  = d.DATE  || "—";
+  document.getElementById("res-id").textContent        = d.ID  || "—";
+  document.getElementById("res-cat").textContent       = d.CAT || "—";
   document.getElementById("scanned-at-row").style.display = "none";
 
   if (!d.ID) {
-    showBanner("invalid", "Invalid QR Code", "Not a valid JCGC ticket");
-    document.getElementById("res-name").textContent = "—";
+    showResult("invalid", "Not a valid ticket", "Unknown");
     addLog("Unknown", null, "err");
     return;
   }
 
-  // Call web app to validate + log
-  if (!WEB_APP_URL || WEB_APP_URL === "YOUR_WEB_APP_URL") {
-    // No web app — just show info without duplicate checking
-    showBanner("valid", d.NAME || "Unknown", "No duplicate check (URL not set)");
-    document.getElementById("res-name").textContent = d.NAME || "—";
-    addLog(d.NAME || "Unknown", d.ID, "ok");
-    return;
-  }
-
   try {
-    const res = await fetch(WEB_APP_URL + "?action=scan&id=" + encodeURIComponent(d.ID));
+    const res    = await fetch(WEB_APP_URL + "?action=scan&id=" + encodeURIComponent(d.ID));
     const result = await res.json();
 
     if (result.status === "valid") {
-      showBanner("valid", result.name || d.NAME, "✓ Valid — let them in");
+      showResult("valid", "✓ Valid — let them in", result.name || d.NAME);
       addLog(result.name || d.NAME, d.ID, "ok");
-      loadStats(); // refresh totals
+      loadStats();
     } else if (result.status === "duplicate") {
-      showBanner("duplicate", result.name || d.NAME, "⚠ Already scanned");
+      showResult("duplicate", "⚠ Already scanned", result.name || d.NAME);
       document.getElementById("scanned-at-row").style.display = "flex";
       document.getElementById("res-scanned-at").textContent   = result.scannedAt || "—";
       addLog(result.name || d.NAME, d.ID, "dup");
     } else {
-      showBanner("invalid", "Error", "Could not verify — check connection");
+      showResult("invalid", "Not recognised — check connection", d.NAME || "Unknown");
       addLog(d.NAME || "Unknown", d.ID, "err");
     }
   } catch(e) {
-    // Network error — fall back to showing info without validation
-    showBanner("valid", d.NAME || "Unknown", "⚠ Offline — no duplicate check");
+    showResult("valid", "⚠ Offline — no duplicate check", d.NAME || "Unknown");
     addLog(d.NAME || "Unknown", d.ID, "ok");
   }
 }
 
-function showBanner(type, name, sub) {
-  const banner = document.getElementById("result-banner");
-  const badge  = document.getElementById("badge");
-  banner.className = "result-banner " + type;
-  badge.textContent = type === "valid" ? "✓" : type === "duplicate" ? "!" : "✕";
-  document.getElementById("res-name").textContent = name;
-  document.getElementById("res-sub").textContent  = sub;
+function showResult(type, status, name) {
+  const card = document.getElementById("result-card");
+  card.className = type;
+  document.getElementById("res-status").textContent = status;
+  document.getElementById("res-name").textContent   = name;
 }
 
 function addLog(name, id, status) {
-  const list = document.getElementById("log-list");
-  if (log.length === 0) list.innerHTML = "";
   const time = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   log.unshift({ name, id, status, time });
-  list.innerHTML = log.map(e => `
-    <li>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div class="dot ${e.status}"></div>
-        <span style="font-weight:500">${e.name}</span>
-        ${e.id ? `<span style="color:#888780;font-size:11px;font-family:monospace">${e.id}</span>` : ""}
-      </div>
+  document.getElementById("log-list").innerHTML = log.map(e => `
+    <div class="log-item">
+      <span>
+        <span class="log-dot ${e.status}"></span>
+        <strong>${e.name}</strong>
+        ${e.id ? `&nbsp;<span style="color:#888780;font-size:11px;font-family:monospace">${e.id}</span>` : ""}
+      </span>
       <span style="color:#888780;font-size:12px">${e.time}</span>
-    </li>`).join("");
+    </div>`).join("");
 }
 
 function reset() {
-  document.getElementById("idle-state").style.display  = "block";
+  document.getElementById("btn-scan").style.display    = "block";
   document.getElementById("reader-wrap").style.display = "none";
   document.getElementById("btn-cancel").style.display  = "none";
   document.getElementById("result-card").style.display = "none";
