@@ -120,7 +120,7 @@
     <div class="field-row" id="scanned-at-row"><span class="field-key">First scanned</span><span class="field-val" id="res-scanned-at" style="color:#F59E0B"></span></div>
   </div>
 
-  <button id="btn-again" onclick="reset()">← Scan next guest</button>
+  <button id="btn-again" onclick="startScan()">← Scan next guest</button>
 
   <!-- Log -->
   <div class="section-label">Recent scans</div>
@@ -222,7 +222,7 @@ async function processQR(raw) {
     } else if (result.status === "duplicate") {
       showResult("duplicate", "⚠ Already scanned", result.name || d.NAME);
       document.getElementById("scanned-at-row").style.display = "flex";
-      document.getElementById("res-scanned-at").textContent   = result.scannedAt || "—";
+      document.getElementById("res-scanned-at").textContent   = formatTime(result.scannedAt);
       addLog(result.name || d.NAME, d.ID, "dup");
     } else {
       showResult("invalid", "Not recognised — check connection", d.NAME || "Unknown");
@@ -261,6 +261,16 @@ function reset() {
   document.getElementById("btn-cancel").style.display  = "none";
   document.getElementById("result-card").style.display = "none";
   document.getElementById("btn-again").style.display   = "none";
+}
+
+ function formatTime(raw) {
+  if (!raw) return "—";
+  const d = new Date(raw);
+  if (isNaN(d)) return raw; // fallback if parsing fails
+  return d.toLocaleString([], {
+    month: "short", day: "numeric",
+    hour: "2-digit", minute: "2-digit"
+  });
 }
 </script>
 </body>
